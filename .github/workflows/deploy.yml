@@ -119,6 +119,13 @@ jobs:
       - name: Apply judging-service
         run: |
           kubectl apply -f k8s/judging-service.yaml
+      - name: Apply Ingress
+        run: |
+          kubectl apply -f k8s/ingress.yaml
+
+      - name: Apply HPA
+        run: |
+          kubectl apply -f k8s/hpa.yaml
 
       # Update Team Service to the exact commit image
       - name: Deploy team-service image
