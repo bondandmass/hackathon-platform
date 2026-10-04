@@ -1,0 +1,111 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: judging-service
+  namespace: hackathon
+  labels:
+    app: judging-service
+spec:
+  # No "replicas" field on purpose: HPA owns the replica count, and kubectl apply would otherwise reset it.
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: judging-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: judging-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: /metrics
+    spec:
+      serviceAccountName: hackathon-app
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+      containers:
+        - name: judging-service
+          image: 588199412082.dkr.ecr.ap-south-1.amazonaws.com/hackathon/judging-service:latest   # CI replaces this with the commit-SHA tag
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - name: DB_HOST
+              valueFrom: {configMapKeyRef: {name: hackathon-config, key: DB_HOST}}
+            - name: DB_PORT
+              valueFrom: {configMapKeyRef: {name: hackathon-config, key: DB_PORT}}
+            - name: DB_NAME
+              valueFrom: {configMapKeyRef: {name: hackathon-config, key: DB_NAME}}
+            - name: DB_USER
+              valueFrom: {configMapKeyRef: {name: hackathon-config, key: DB_USER}}
+            - name: DB_SSLMODE
+              valueFrom: {configMapKeyRef: {name: hackathon-config, key: DB_SSLMODE}}
+            - name: DB_PASSWORD
+              valueFrom: {secretKeyRef: {name: hackathon-db, key: DB_PASSWORD}}
+            - name: AWS_REGION
+              valueFrom: {configMapKeyRef: {name: hackathon-config, key: AWS_REGION}}
+            - name: COGNITO_REGION
+              valueFrom: {configMapKeyRef: {name: hackathon-config, key: COGNITO_REGION}}
+            - name: COGNITO_USER_POOL_ID
+              valueFrom: {configMapKeyRef: {name: hackathon-config, key: COGNITO_USER_POOL_ID}}
+            - name: COGNITO_APP_CLIENT_ID
+              valueFrom: {configMapKeyRef: {name: hackathon-config, key: COGNITO_APP_CLIENT_ID}}
+            - name: SUBMISSION_SERVICE_URL
+              valueFrom: {configMapKeyRef: {name: hackathon-config, key: SUBMISSION_SERVICE_URL}}
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          startupProbe:
+            httpGet: {path: /health, port: http}
+            periodSeconds: 3
+            failureThreshold: 20
+          readinessProbe:
+            httpGet: {path: /ready, port: http}
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            httpGet: {path: /health, port: http}
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: ["ALL"]}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: judging-service
+  namespace: hackathon
+  labels:
+    app: judging-service
+spec:
+  type: ClusterIP
+  selector:
+    app: judging-service
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

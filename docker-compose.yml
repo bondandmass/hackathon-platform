@@ -1,0 +1,57 @@
+# Local run on your Mac: Postgres in Docker, real Cognito, real S3 (using your ~/.aws login).
+#   docker compose up --build
+# Team:        http://localhost:8001/teams
+# Submission:  http://localhost:8002/submissions
+# Judging:     http://localhost:8003/judging
+x-common-env: &common-env
+  DB_HOST: postgres
+  DB_PORT: "5432"
+  DB_NAME: postgres
+  DB_USER: postgres
+  DB_PASSWORD: localdev
+  DB_SSLMODE: disable
+  AWS_REGION: ap-south-1
+  COGNITO_REGION: ap-south-1
+  COGNITO_USER_POOL_ID: ap-south-1_sfpWo53YF
+  COGNITO_APP_CLIENT_ID: b56eo5k1q1ffcpsto6jrkj7ov
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_PASSWORD: localdev
+    ports: ["5432:5432"]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 2s
+      retries: 15
+
+  team-service:
+    build: {context: ./team-service, platforms: [linux/amd64]}
+    platform: linux/amd64
+    environment: *common-env
+    ports: ["8001:8000"]
+    depends_on: {postgres: {condition: service_healthy}}
+
+  submission-service:
+    build: {context: ./submission-service, platforms: [linux/amd64]}
+    platform: linux/amd64
+    environment:
+      <<: *common-env
+      S3_BUCKET: hackathon-588199412082
+      TEAM_SERVICE_URL: http://team-service:8000
+      AWS_SHARED_CREDENTIALS_FILE: /aws/credentials
+      AWS_CONFIG_FILE: /aws/config
+    volumes:
+      - ~/.aws:/aws:ro
+    ports: ["8002:8000"]
+    depends_on: {postgres: {condition: service_healthy}}
+
+  judging-service:
+    build: {context: ./judging-service, platforms: [linux/amd64]}
+    platform: linux/amd64
+    environment:
+      <<: *common-env
+      SUBMISSION_SERVICE_URL: http://submission-service:8000
+    ports: ["8003:8000"]
+    depends_on: {postgres: {condition: service_healthy}}
