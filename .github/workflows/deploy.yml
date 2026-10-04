@@ -14,111 +14,159 @@ env:
   AWS_ACCOUNT_ID: "588199412082"
   EKS_CLUSTER: hackathon-eks
 
+  TEAM_ECR: 588199412082.dkr.ecr.ap-south-1.amazonaws.com/hackathon/team-service
+  SUBMISSION_ECR: 588199412082.dkr.ecr.ap-south-1.amazonaws.com/hackathon/submission-service
+  JUDGING_ECR: 588199412082.dkr.ecr.ap-south-1.amazonaws.com/hackathon/judging-service
+
 jobs:
   deploy:
     name: Build and Deploy to EKS
     runs-on: ubuntu-latest
 
     steps:
+
+      # Checkout repository
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Authenticate GitHub Actions with AWS using OIDC
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: arn:aws:iam::588199412082:role/GitHubActionsHackathonRole
-          aws-region: ap-south-1
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: github-actions-deploy
 
+      # Verify that AWS OIDC authentication worked
       - name: Verify AWS identity
         run: |
           aws sts get-caller-identity
 
+      # Login to Amazon ECR
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
+      # Use GitHub commit SHA as immutable image tag
       - name: Set image tag
         run: |
           echo "IMAGE_TAG=${GITHUB_SHA}" >> "$GITHUB_ENV"
 
+      # Setup Docker Buildx
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      # Build and push Team Service
       - name: Build and push team-service
-        run: |
-          docker buildx build \
-            --platform linux/amd64 \
-            -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/hackathon/team-service:$IMAGE_TAG \
-            -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/hackathon/team-service:latest \
-            --push \
-            ./team-service
+        uses: docker/build-push-action@v6
+        with:
+          context: ./team-service
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ env.TEAM_ECR }}:${{ env.IMAGE_TAG }}
+            ${{ env.TEAM_ECR }}:latest
 
+      # Build and push Submission Service
       - name: Build and push submission-service
-        run: |
-          docker buildx build \
-            --platform linux/amd64 \
-            -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/hackathon/submission-service:$IMAGE_TAG \
-            -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/hackathon/submission-service:latest \
-            --push \
-            ./submission-service
+        uses: docker/build-push-action@v6
+        with:
+          context: ./submission-service
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ env.SUBMISSION_ECR }}:${{ env.IMAGE_TAG }}
+            ${{ env.SUBMISSION_ECR }}:latest
 
+      # Build and push Judging Service
       - name: Build and push judging-service
-        run: |
-          docker buildx build \
-            --platform linux/amd64 \
-            -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/hackathon/judging-service:$IMAGE_TAG \
-            -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/hackathon/judging-service:latest \
-            --push \
-            ./judging-service
+        uses: docker/build-push-action@v6
+        with:
+          context: ./judging-service
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ env.JUDGING_ECR }}:${{ env.IMAGE_TAG }}
+            ${{ env.JUDGING_ECR }}:latest
 
+      # Configure kubectl for the EKS cluster
       - name: Configure kubectl
         run: |
           aws eks update-kubeconfig \
-            --region $AWS_REGION \
-            --name $EKS_CLUSTER
+            --region "$AWS_REGION" \
+            --name "$EKS_CLUSTER"
 
+      # Verify EKS access
       - name: Verify EKS access
         run: |
           kubectl get nodes
 
+      # Apply application ConfigMap
       - name: Apply application configuration
         run: |
           kubectl apply -f k8s/configmap.yaml
 
-      - name: Apply application services
+      # Apply Team Service
+      - name: Apply team-service
         run: |
           kubectl apply -f k8s/team-service.yaml
+
+      # Apply Submission Service
+      - name: Apply submission-service
+        run: |
           kubectl apply -f k8s/submission-service.yaml
+
+      # Apply Judging Service
+      - name: Apply judging-service
+        run: |
           kubectl apply -f k8s/judging-service.yaml
 
+      # Update Team Service to the exact commit image
       - name: Deploy team-service image
         run: |
           kubectl -n hackathon set image deployment/team-service \
-            team-service=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/hackathon/team-service:$IMAGE_TAG
+            team-service=${TEAM_ECR}:${IMAGE_TAG}
 
+      # Update Submission Service to the exact commit image
       - name: Deploy submission-service image
         run: |
           kubectl -n hackathon set image deployment/submission-service \
-            submission-service=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/hackathon/submission-service:$IMAGE_TAG
+            submission-service=${SUBMISSION_ECR}:${IMAGE_TAG}
 
+      # Update Judging Service to the exact commit image
       - name: Deploy judging-service image
         run: |
           kubectl -n hackathon set image deployment/judging-service \
-            judging-service=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/hackathon/judging-service:$IMAGE_TAG
+            judging-service=${JUDGING_ECR}:${IMAGE_TAG}
 
-      - name: Wait for team-service rollout
+      # Wait for Team Service rollout
+      - name: Wait for team-service
         run: |
-          kubectl -n hackathon rollout status deployment/team-service --timeout=180s
+          kubectl -n hackathon rollout status \
+            deployment/team-service \
+            --timeout=180s
 
-      - name: Wait for submission-service rollout
+      # Wait for Submission Service rollout
+      - name: Wait for submission-service
         run: |
-          kubectl -n hackathon rollout status deployment/submission-service --timeout=180s
+          kubectl -n hackathon rollout status \
+            deployment/submission-service \
+            --timeout=180s
 
-      - name: Wait for judging-service rollout
+      # Wait for Judging Service rollout
+      - name: Wait for Judging Service
         run: |
-          kubectl -n hackathon rollout status deployment/judging-service --timeout=180s
+          kubectl -n hackathon rollout status \
+            deployment/judging-service \
+            --timeout=180s
 
+      # Show final deployment status
       - name: Show deployment status
         run: |
-          kubectl -n hackathon get deployments
-          kubectl -n hackathon get pods
+          echo "===== DEPLOYMENTS ====="
+          kubectl -n hackathon get deployments -o wide
+
+          echo "===== PODS ====="
+          kubectl -n hackathon get pods -o wide
+
+          echo "===== SERVICES ====="
           kubectl -n hackathon get services
