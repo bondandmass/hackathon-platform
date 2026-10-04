@@ -1,0 +1,124 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ap-south-1
+  AWS_ACCOUNT_ID: "588199412082"
+  EKS_CLUSTER: hackathon-eks
+
+jobs:
+  deploy:
+    name: Build and Deploy to EKS
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::588199412082:role/GitHubActionsHackathonRole
+          aws-region: ap-south-1
+
+      - name: Verify AWS identity
+        run: |
+          aws sts get-caller-identity
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set image tag
+        run: |
+          echo "IMAGE_TAG=${GITHUB_SHA}" >> "$GITHUB_ENV"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push team-service
+        run: |
+          docker buildx build \
+            --platform linux/amd64 \
+            -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/hackathon/team-service:$IMAGE_TAG \
+            -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/hackathon/team-service:latest \
+            --push \
+            ./team-service
+
+      - name: Build and push submission-service
+        run: |
+          docker buildx build \
+            --platform linux/amd64 \
+            -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/hackathon/submission-service:$IMAGE_TAG \
+            -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/hackathon/submission-service:latest \
+            --push \
+            ./submission-service
+
+      - name: Build and push judging-service
+        run: |
+          docker buildx build \
+            --platform linux/amd64 \
+            -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/hackathon/judging-service:$IMAGE_TAG \
+            -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/hackathon/judging-service:latest \
+            --push \
+            ./judging-service
+
+      - name: Configure kubectl
+        run: |
+          aws eks update-kubeconfig \
+            --region $AWS_REGION \
+            --name $EKS_CLUSTER
+
+      - name: Verify EKS access
+        run: |
+          kubectl get nodes
+
+      - name: Apply application configuration
+        run: |
+          kubectl apply -f k8s/configmap.yaml
+
+      - name: Apply application services
+        run: |
+          kubectl apply -f k8s/team-service.yaml
+          kubectl apply -f k8s/submission-service.yaml
+          kubectl apply -f k8s/judging-service.yaml
+
+      - name: Deploy team-service image
+        run: |
+          kubectl -n hackathon set image deployment/team-service \
+            team-service=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/hackathon/team-service:$IMAGE_TAG
+
+      - name: Deploy submission-service image
+        run: |
+          kubectl -n hackathon set image deployment/submission-service \
+            submission-service=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/hackathon/submission-service:$IMAGE_TAG
+
+      - name: Deploy judging-service image
+        run: |
+          kubectl -n hackathon set image deployment/judging-service \
+            judging-service=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/hackathon/judging-service:$IMAGE_TAG
+
+      - name: Wait for team-service rollout
+        run: |
+          kubectl -n hackathon rollout status deployment/team-service --timeout=180s
+
+      - name: Wait for submission-service rollout
+        run: |
+          kubectl -n hackathon rollout status deployment/submission-service --timeout=180s
+
+      - name: Wait for judging-service rollout
+        run: |
+          kubectl -n hackathon rollout status deployment/judging-service --timeout=180s
+
+      - name: Show deployment status
+        run: |
+          kubectl -n hackathon get deployments
+          kubectl -n hackathon get pods
+          kubectl -n hackathon get services
