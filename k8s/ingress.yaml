@@ -36,3 +36,17 @@ spec:
                 name: judging-service
                 port:
                   number: 80
+          - path: /app
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
+          - path: /
+            pathType: Exact
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80

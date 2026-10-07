@@ -7,6 +7,7 @@ Users sign in with Amazon Cognito; data lives in RDS PostgreSQL and S3.
 team-service/         /teams        create, join and leave teams
 submission-service/   /submissions  upload a team's project file to S3
 judging-service/      /judging      judges score submissions; leaderboard
+frontend/             / and /app    landing page and web app for participants and judges (static, nginx)
 k8s/                  Deployment + Service per service, shared ConfigMap
 docs/INTEGRATION.md   ports, routes, env vars and probes for the infra side
 docker-compose.yml    run all three locally
@@ -44,6 +45,8 @@ curl -X POST localhost:8001/teams -H "Authorization: Bearer $TOKEN" \
 curl -X POST localhost:8002/submissions -H "Authorization: Bearer $TOKEN" \
   -F title="Rocket App" -F file=@deck.pdf
 ```
+
+Web app: `http://localhost:8080/app/` (sign in with a Cognito test user).
 
 Interactive API docs: `http://localhost:8001/docs`, `:8002/docs`, `:8003/docs`.
 

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Hackathon Platform</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%236D28D9'/%3E%3Cpath d='M10 22l6-12 6 12' stroke='%23F97316' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&display=swap">
+  <link rel="stylesheet" href="styles.css">
+  <script src="config.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="band">
+    <div class="band-inner">
+      <a class="brand" href="/app/">
+        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 18l6-12 6 12"/></svg></span>
+        <span class="brand-text" id="brand">Hackathon Platform</span>
+      </a>
+      <div class="who" id="who" hidden>
+        <span class="role"><span class="dot" aria-hidden="true"></span><span id="role"></span></span>
+        <button class="ghost" id="signout" type="button"></button>
+      </div>
+    </div>
+    <nav class="tabs" id="tabs" aria-label="Sections" hidden></nav>
+  </header>
+
+  <main id="main" tabindex="-1"></main>
+
+  <dialog id="confirm" aria-labelledby="confirm-title" aria-describedby="confirm-body">
+    <h2 id="confirm-title"></h2>
+    <p id="confirm-body"></p>
+    <div class="actions">
+      <button class="btn solid-danger" id="confirm-yes" type="button"></button>
+      <button class="btn secondary" id="confirm-no" type="button">Cancel</button>
+    </div>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

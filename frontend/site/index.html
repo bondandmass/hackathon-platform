@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Hackathon Platform: form teams, submit projects, get scored</title>
+  <meta name="description" content="Form a team, submit your project and watch judges' scores land on a live leaderboard. Runs on Amazon EKS.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%236D28D9'/%3E%3Cpath d='M10 22l6-12 6 12' stroke='%23F97316' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap">
+  <link rel="stylesheet" href="/app/landing.css">
+  <script src="/app/landing.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#top">Skip to content</a>
+
+  <header class="nav" id="nav">
+    <div class="wrap nav-inner">
+      <a class="logo" href="/" aria-label="Hackathon Platform home">
+        <span class="logo-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 18l6-12 6 12"/></svg></span>
+        <span>Hackathon Platform</span>
+      </a>
+      <nav aria-label="Page sections">
+        <ul class="nav-links">
+          <li><a href="#roles">Platform</a></li>
+          <li><a href="#steps">How it works</a></li>
+          <li><a href="#scoring">Scoring</a></li>
+          <li><a href="#stack">Under the hood</a></li>
+          <li><a href="#faq">FAQ</a></li>
+        </ul>
+      </nav>
+      <a class="btn btn-dark" href="/app/">Sign in</a>
+    </div>
+  </header>
+
+  <main id="top" tabindex="-1">
+    <!-- Hero -->
+    <section class="hero wrap">
+      <div class="hero-copy">
+        <p class="kicker"><span class="dot" aria-hidden="true"></span>For participants and judges</p>
+        <h1>Turning weekend ideas into scored projects.</h1>
+        <p class="lede">Form a team, upload what you built, and watch judges' scores land on a live leaderboard. Every score is calculated the same way, in the open.</p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="/app/">Sign in to the platform</a>
+          <a class="btn btn-ghost" href="#steps">See how it works</a>
+        </div>
+      </div>
+
+      <figure class="code-card" aria-label="How a project's score is calculated">
+        <div class="code-head">
+          <span class="lights" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span class="file">scoring.py</span>
+        </div>
+<pre><code><span class="c"># every judge rates four criteria from 1 to 10</span>
+<span class="k">WEIGHTS</span> = {
+    <span class="s">"innovation"</span>:   <span class="n">0.30</span>,
+    <span class="s">"technical"</span>:    <span class="n">0.30</span>,
+    <span class="s">"impact"</span>:       <span class="n">0.25</span>,
+    <span class="s">"presentation"</span>: <span class="n">0.15</span>,
+}
+
+<span class="k">def</span> <span class="f">weighted_total</span>(scores):
+    <span class="k">return</span> sum(
+        scores[c] * w
+        <span class="k">for</span> c, w <span class="k">in</span> WEIGHTS.items()
+    )
+
+<span class="c"># leaderboard = average of every judge's total</span></code></pre>
+        <figcaption class="code-foot">
+          <span>Orbit Planner</span>
+          <span class="calc">9×0.30 + 8×0.30 + 7×0.25 + 6×0.15 = <strong>7.75</strong></span>
+        </figcaption>
+      </figure>
+    </section>
+
+    <!-- Stack marquee -->
+    <section class="marquee-band" aria-label="Services the platform runs on">
+      <div class="wrap marquee-row">
+        <p class="marquee-label">Runs on</p>
+        <div class="marquee" id="marquee">
+          <ul class="marquee-track">
+            <li>Amazon EKS</li><li>Application Load Balancer</li><li>Amazon Cognito</li><li>RDS PostgreSQL</li><li>Amazon S3</li><li>Amazon ECR</li><li>Prometheus</li><li>Grafana</li><li>Horizontal Pod Autoscaler</li><li>GitHub Actions</li><li>k6</li>
+          </ul>
+          <ul class="marquee-track" aria-hidden="true">
+            <li>Amazon EKS</li><li>Application Load Balancer</li><li>Amazon Cognito</li><li>RDS PostgreSQL</li><li>Amazon S3</li><li>Amazon ECR</li><li>Prometheus</li><li>Grafana</li><li>Horizontal Pod Autoscaler</li><li>GitHub Actions</li><li>k6</li>
+          </ul>
+        </div>
+        <button class="pause" id="pause" type="button" aria-pressed="false">Pause</button>
+      </div>
+    </section>
+
+    <!-- Roles / features -->
+    <section class="section wrap" id="roles" aria-labelledby="roles-h">
+      <div class="section-head">
+        <h2 id="roles-h">Everything a hackathon needs, in one place.</h2>
+        <p>Participants and judges sign in to the same platform. Each sees only what their role needs.</p>
+      </div>
+      <div class="features">
+        <article class="feature">
+          <svg class="ficon" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <h3>Teams</h3>
+          <p>Start a team or join one with an open seat. Up to four people, one leader, no spreadsheets.</p>
+        </article>
+        <article class="feature">
+          <svg class="ficon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+          <h3>Submissions</h3>
+          <p>Upload slides, a PDF or a zip up to 20 MB, plus a repository link. Stored privately in S3.</p>
+        </article>
+        <article class="feature">
+          <svg class="ficon" viewBox="0 0 24 24" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          <h3>Judging</h3>
+          <p>Judges download each project and rate four criteria with sliders. The weighted total updates as they move.</p>
+        </article>
+        <article class="feature">
+          <svg class="ficon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+          <h3>Leaderboard</h3>
+          <p>Rankings refresh every 15 seconds, so a judge's score reaches the big screen while the room watches.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- Steps -->
+    <section class="section steps-band" id="steps" aria-labelledby="steps-h">
+      <div class="wrap">
+        <div class="section-head">
+          <h2 id="steps-h">Four steps from idea to ranking.</h2>
+          <p>The same path for every team, from the first sign-in to the final leaderboard.</p>
+        </div>
+        <ol class="steps">
+          <li>
+            <span class="num" aria-hidden="true">1</span>
+            <h3>Form a team</h3>
+            <p>Sign in with the account the organisers gave you, then create a team or join one with space.</p>
+          </li>
+          <li>
+            <span class="num" aria-hidden="true">2</span>
+            <h3>Submit your project</h3>
+            <p>One submission per team: a title, a short description, a file and an optional repository link.</p>
+          </li>
+          <li>
+            <span class="num" aria-hidden="true">3</span>
+            <h3>Judges score it</h3>
+            <p>Each judge rates innovation, technical depth, impact and presentation from 1 to 10.</p>
+          </li>
+          <li>
+            <span class="num" aria-hidden="true">4</span>
+            <h3>See where you rank</h3>
+            <p>Your average across judges goes on the leaderboard the moment a score is saved.</p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- Transparent scoring -->
+    <section class="section wrap split" id="scoring" aria-labelledby="scoring-h">
+      <div>
+        <h2 id="scoring-h">No black box. Just four weights.</h2>
+        <p class="body">Every judge scores the same four criteria. Your total is a weighted sum, and your rank is the average across all judges who scored you. Individual judges' scores stay private; the averages are public to everyone signed in.</p>
+        <a class="btn btn-ghost" href="/app/#leaderboard">Open the leaderboard</a>
+      </div>
+      <div class="weights" role="list" aria-label="Scoring weights">
+        <div class="weight" role="listitem"><span class="wl">Innovation</span><span class="wbar"><span style="width:100%"></span></span><span class="wv">30%</span></div>
+        <div class="weight" role="listitem"><span class="wl">Technical depth</span><span class="wbar"><span style="width:100%"></span></span><span class="wv">30%</span></div>
+        <div class="weight" role="listitem"><span class="wl">Impact</span><span class="wbar"><span style="width:83.3%"></span></span><span class="wv">25%</span></div>
+        <div class="weight" role="listitem"><span class="wl">Presentation</span><span class="wbar"><span style="width:50%"></span></span><span class="wv">15%</span></div>
+        <p class="weights-note">Bars are drawn relative to the largest weight.</p>
+      </div>
+    </section>
+
+    <!-- Architecture -->
+    <section class="section stack-band" id="stack" aria-labelledby="stack-h">
+      <div class="wrap">
+        <div class="section-head on-dark">
+          <h2 id="stack-h">Built like production, not a demo.</h2>
+          <p>Three microservices on Kubernetes, scaled by load, watched by Prometheus and deployed on every push.</p>
+        </div>
+        <div class="flow" aria-label="Request path">
+          <div class="node"><strong>Browser</strong><span>Signs in with Cognito</span></div>
+          <span class="arrow" aria-hidden="true"></span>
+          <div class="node"><strong>Load balancer</strong><span>Routes /teams, /submissions, /judging</span></div>
+          <span class="arrow" aria-hidden="true"></span>
+          <div class="node node-wide"><strong>Amazon EKS</strong><span>Team, submission and judging services, scaled by HPA</span></div>
+          <span class="arrow" aria-hidden="true"></span>
+          <div class="node"><strong>RDS and S3</strong><span>Scores and teams in Postgres, files in S3</span></div>
+        </div>
+        <ul class="facts">
+          <li><strong>3</strong><span>microservices, one per job</span></li>
+          <li><strong>1 to 4</strong><span>copies each, added automatically under load</span></li>
+          <li><strong>15 s</strong><span>leaderboard refresh</span></li>
+          <li><strong>1 push</strong><span>to build and roll out with GitHub Actions</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="section wrap faq" id="faq" aria-labelledby="faq-h">
+      <div class="section-head">
+        <h2 id="faq-h">Straight answers.</h2>
+      </div>
+      <div class="faq-list">
+        <details>
+          <summary>How do I get an account?</summary>
+          <p>The organisers create your account and add you to the participants or judges group. Sign in with the email and password they send you; you'll set your own password the first time.</p>
+        </details>
+        <details>
+          <summary>How big can a team be?</summary>
+          <p>Up to four people. You can be in one team at a time. If the leader leaves, the longest-standing member takes over.</p>
+        </details>
+        <details>
+          <summary>What can we submit?</summary>
+          <p>One file up to 20 MB, such as slides, a PDF or a zip, plus a title, a description and an optional repository link.</p>
+        </details>
+        <details>
+          <summary>Can we change our submission?</summary>
+          <p>Yes: withdraw it and submit again. Do it before judging starts, because scores already given stay attached to the old submission.</p>
+        </details>
+        <details>
+          <summary>How is the score calculated?</summary>
+          <p>Each judge's total is 0.30 × innovation + 0.30 × technical depth + 0.25 × impact + 0.15 × presentation. Your leaderboard score is the average of those totals across judges.</p>
+        </details>
+        <details>
+          <summary>Who can see the scores?</summary>
+          <p>Everyone signed in sees the leaderboard averages. Only judges see individual scores and comments.</p>
+        </details>
+      </div>
+    </section>
+
+    <!-- Final CTA -->
+    <section class="cta-final wrap" aria-labelledby="cta-h">
+      <h2 id="cta-h">Your team is one sign-in away.</h2>
+      <a class="btn btn-primary btn-lg" href="/app/">Sign in to the platform</a>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap footer-inner">
+      <span>Hackathon Platform</span>
+      <span>Cloud capstone project, <span id="year">2026</span></span>
+    </div>
+  </footer>
+</body>
+</html>

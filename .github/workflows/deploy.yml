@@ -17,6 +17,7 @@ env:
   TEAM_ECR: 588199412082.dkr.ecr.ap-south-1.amazonaws.com/hackathon/team-service
   SUBMISSION_ECR: 588199412082.dkr.ecr.ap-south-1.amazonaws.com/hackathon/submission-service
   JUDGING_ECR: 588199412082.dkr.ecr.ap-south-1.amazonaws.com/hackathon/judging-service
+  FRONTEND_ECR: 588199412082.dkr.ecr.ap-south-1.amazonaws.com/hackathon/frontend
 
 jobs:
   deploy:
@@ -88,6 +89,17 @@ jobs:
             ${{ env.JUDGING_ECR }}:${{ env.IMAGE_TAG }}
             ${{ env.JUDGING_ECR }}:latest
 
+      # Build and push the frontend
+      - name: Build and push frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ env.FRONTEND_ECR }}:${{ env.IMAGE_TAG }}
+            ${{ env.FRONTEND_ECR }}:latest
+
       # Configure kubectl for the EKS cluster
       - name: Configure kubectl
         run: |
@@ -119,6 +131,10 @@ jobs:
       - name: Apply judging-service
         run: |
           kubectl apply -f k8s/judging-service.yaml
+      - name: Apply frontend
+        run: |
+          kubectl apply -f k8s/frontend.yaml
+
       - name: Apply Ingress
         run: |
           kubectl apply -f k8s/ingress.yaml
@@ -145,6 +161,12 @@ jobs:
           kubectl -n hackathon set image deployment/judging-service \
             judging-service=${JUDGING_ECR}:${IMAGE_TAG}
 
+      # Update the frontend to the exact commit image
+      - name: Deploy frontend image
+        run: |
+          kubectl -n hackathon set image deployment/frontend \
+            frontend=${FRONTEND_ECR}:${IMAGE_TAG}
+
       # Wait for Team Service rollout
       - name: Wait for team-service
         run: |
@@ -164,6 +186,13 @@ jobs:
         run: |
           kubectl -n hackathon rollout status \
             deployment/judging-service \
+            --timeout=180s
+
+      # Wait for frontend rollout
+      - name: Wait for frontend
+        run: |
+          kubectl -n hackathon rollout status \
+            deployment/frontend \
             --timeout=180s
 
       # Show final deployment status

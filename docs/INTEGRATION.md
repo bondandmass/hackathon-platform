@@ -138,3 +138,21 @@ All need `Authorization: Bearer <Cognito access token>`.
 
 The prefixes `/teams`, `/submissions` and `/judging` are correct for the Ingress. Use `pathType: Prefix`
 and do not strip the prefix; the apps expect the full path.
+
+## 10. Frontend
+
+| Item | Value |
+| --- | --- |
+| Folder | `frontend/` (static HTML, CSS and JS; no build step) |
+| Image | `nginxinc/nginx-unprivileged`, non-root UID 101, port `8080`, `linux/amd64` |
+| ECR repo | `hackathon/frontend` (create once before the first deploy) |
+| Health | `GET /health` returns `200 {"status":"ok","service":"frontend"}` |
+| Ingress | `/app` (Prefix) and `/` (Exact, public landing page) go to Service `frontend` port 80 |
+| Manifest | `k8s/frontend.yaml`: 1 replica, 20m/32Mi requests, 200m/64Mi limits; no HPA needed |
+
+The browser signs in directly with Cognito (`USER_PASSWORD_AUTH` on the app client) and calls the
+APIs on the same ALB origin, so no CORS setup is needed.
+
+```bash
+aws ecr create-repository --repository-name hackathon/frontend --region ap-south-1
+```

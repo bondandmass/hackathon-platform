@@ -3,6 +3,7 @@
 # Team:        http://localhost:8001/teams
 # Submission:  http://localhost:8002/submissions
 # Judging:     http://localhost:8003/judging
+# Frontend:    http://localhost:8080/app/
 x-common-env: &common-env
   DB_HOST: postgres
   DB_PORT: "5432"
@@ -55,3 +56,11 @@ services:
       SUBMISSION_SERVICE_URL: http://submission-service:8000
     ports: ["8003:8000"]
     depends_on: {postgres: {condition: service_healthy}}
+
+  frontend:
+    build: {context: ./frontend, platforms: [linux/amd64]}
+    platform: linux/amd64
+    volumes:
+      - ./frontend/nginx.local.conf:/etc/nginx/conf.d/default.conf:ro
+    ports: ["8080:8080"]
+    depends_on: [team-service, submission-service, judging-service]
